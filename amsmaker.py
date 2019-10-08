@@ -7,6 +7,7 @@ waveform_params = {
     'triangle':      (2.0, 1.0, 0.0, 0.5, 0.0, 0.0, 0.0),
     'pulse20':       (1.0, 1.0, 0.0, 0.2, 0.0, 0.0, 0.0),
     'brassy':        (2.0, 2.0, 0.0, 0.1, 0.0, 0.0, 0.0),  # 10% triangular pulse
+    'analogSquare':  (3.0, 1.0, 0.0, 0.48, 2.0, 0.0, 0.035),
     'pluckedString': (2.0, 1.0, 0.0, 0.2, 0.0, 0.0, 0.0),  # 20% uneven triangle
     'oboe':          (0.4, 1.0, 0.0, 0.12, 0.0, 1.0, 0.47),
     'trombone':      (2.0, 1.0, 0.0, 0.045, 1.0, 1.0, 0.0625),
@@ -47,8 +48,14 @@ def get_harmonic_levels(waveform_name, count):
         n += 1
     return levels
 
+def generate_64_sines():
+    for i in range(64):
+        print(ams_template.format(60, 60))
+        print('Sine {0} 1.000000'.format(i + 1))
+        print()
+
 if __name__ == '__main__':
-    for note in range(0, 128):
+    for note in range(128):
         print(ams_template.format(note, note))
 
         levels = get_harmonic_levels('triangle', 64)
@@ -56,3 +63,6 @@ if __name__ == '__main__':
             print('Sine {0} {1:.6f}'.format(i + 1, level))
 
     print()
+
+    print("64 sines")
+    generate_64_sines()
