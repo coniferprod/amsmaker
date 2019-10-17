@@ -1,6 +1,7 @@
 import sys
 import os
 import math
+import argparse
 
 # the terms in the tuple are: a, b, c, xp, d, e, yp
 waveform_params = {
@@ -34,8 +35,13 @@ def compute_harmonic(number, params):
     x = n * math.pi * xp
     y = n * math.pi * yp
     module1 = 1.0 / math.pow(n, a)
-    module2 = math.pow(math.sin(x), b) * math.pow(math.cos(x), c)
-    module3 = math.pow(math.sin(y), d) * math.pow(math.cos(y), e)
+    #print('x = {0}'.format(x))
+    sx = abs(math.sin(x))
+    sy = abs(math.sin(y))
+    cx = abs(math.cos(x))  # avoid math domain error if the result of cos goes negative
+    cy = abs(math.cos(y))
+    module2 = math.pow(sx, b) * math.pow(cx, c)
+    module3 = math.pow(sy, d) * math.pow(cy, e)
     return module1 * module2 * module3
 
 def get_harmonic_level(number, params): 
@@ -43,12 +49,11 @@ def get_harmonic_level(number, params):
     # print('DEBUG n = {0}, a = {1}'.format(number, a))
     return abs(a)
 
-def get_harmonic_levels(waveform_name, count):
-    params = waveform_params[waveform_name]
+def get_harmonic_levels(w_params, count):
     levels = []
     n = 0
     while n < count:
-        levels.append(get_harmonic_level(n + 1, params))
+        levels.append(get_harmonic_level(n + 1, w_params))
         n += 1
     return levels
 
@@ -58,16 +63,16 @@ def generate_64_sines():
         print('Sine {0} 1.000000'.format(i + 1))
         print()
 
-def make_ams_lines(w_name, note):
+def make_ams_lines(w_params, note):
     lines = []
     lines.append(ams_template.format(note, note))
-    levels = get_harmonic_levels(w_name, NUM_HARMONICS)
+    levels = get_harmonic_levels(w_params, NUM_HARMONICS)
     for i, level in enumerate(levels):
         lines.append('Sine {0} {1:.6f}'.format(i + 1, level))
     return lines
 
-def write_ams_file(w_name, note, output_path = ''):
-    lines = make_ams_lines(w_name, note)
+def write_ams_file(w_name, w_params, note, output_path = ''):
+    lines = make_ams_lines(w_params, note)
     file_name = os.path.join(output_path, '{0}-{1:03d}.ams'.format(w_name, note))
     with open(file_name, 'w') as f:
         for line in lines:
@@ -75,24 +80,41 @@ def write_ams_file(w_name, note, output_path = ''):
             f.write('\r\n')
 
 if __name__ == '__main__':
-    waveform_name = 'saw'
-    output_path = ''
-    if len(sys.argv) >= 3:
-        waveform_name = sys.argv[1]
-        if not waveform_name in waveform_params:
-            print('Unknown waveform name "{0}". Known ones are: {1}'.format(waveform_name, ', '.join(waveform_params)))
-            sys.exit(-1)
-        output_path = sys.argv[2]
-    else:
-        print('Usage: python amsmaker.py waveform_name output_path')
-        sys.exit(0)
+    parser = argparse.ArgumentParser(description='Generate AMS files')
+
+    name_group = parser.add_argument_group('Name')
+    name_group.add_argument('--w', default='', type=str, help='Pre-made waveform name')
+
+    param_group = parser.add_argument_group('Parameters')
+    param_group.add_argument('--a', default=1.0, type=float, help='A parameter value')
+    param_group.add_argument('--b', default=0.0, type=float, help='B parameter value')
+    param_group.add_argument('--c', default=0.0, type=float, help='C parameter value')
+    param_group.add_argument('--x', default=0.0, type=float, help='Xp parameter value')
+    param_group.add_argument('--d', default=0.0, type=float, help='D parameter value')
+    param_group.add_argument('--e', default=0.0, type=float, help='E parameter value')
+    param_group.add_argument('--y', default=0.0, type=float, help='Yp parameter value')
+
+    output_group = parser.add_argument_group('Output')
+    output_group.add_argument('--o', default='', type=str, help='Output path')
+
+    args = parser.parse_args()
+
+    params = (args.a, args.b, args.c, args.x, args.d, args.e, args.y)
+
+    waveform_name = args.w
+    if waveform_name == '':
+        parser.print_usage()
+        sys.exit(-1)
+
+    if waveform_name in waveform_params:
+        params = waveform_params[waveform_name]
+
+    output_path = args.o
+
+    print('waveform name = {0}, params = {1}, output_path = {2}'.format(waveform_name, params, output_path))
 
     for note in range(128):
-        #lines = make_ams_lines(waveform_name, note)
-        #for line in lines:
-        #    print(line)
-
-        write_ams_file(waveform_name, note, output_path)
+        write_ams_file(waveform_name, params, note, output_path)
 
     #print("64 sines")
     #generate_64_sines()
